@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
 import HomePage from "./pages/HomePage";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -10,10 +10,13 @@ import YTPreview from "./pages/YTPreview";
 import Login from "./components/Login";
 
 export default function App() {
+    const location = useLocation();
+    const isPreviewRoute = location.pathname === "/preview";
+
     return (
         <>
-            <LenisScroll />
-            <Navbar />
+            {!isPreviewRoute && <LenisScroll />}
+            {!isPreviewRoute && <Navbar />}
             <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/generate" element={<Generate/>} />
@@ -22,7 +25,7 @@ export default function App() {
                 <Route path="/preview" element={<YTPreview/>} />
                 <Route path="/login" element={<Login/>} />
             </Routes>
-            <Footer />
+            {!isPreviewRoute && <Footer />}
         </>
     );
 }

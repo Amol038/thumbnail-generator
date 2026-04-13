@@ -174,9 +174,37 @@ export const yt_html = `
             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
             <title>YouTube - Clone</title>
             <!-- Tailwind CSS CDN -->
-        
+            <script src="https://cdn.tailwindcss.com"></script>
+            <script>
+                tailwind.config = {
+                    theme: {
+                        extend: {
+                            colors: {
+                                yt: "#0f0f0f",
+                                yt2: "#272727",
+                                ytBorder: "#303030",
+                            },
+                        },
+                    },
+                };
+            </script>
             <!-- Lucide Icons CDN -->
             <script src="https://unpkg.com/lucide@latest"></script>
+            <style>
+                * {
+                    box-sizing: border-box;
+                }
+
+                body {
+                    margin: 0;
+                    font-family: Arial, Helvetica, sans-serif;
+                }
+
+                img {
+                    display: block;
+                    max-width: 100%;
+                }
+            </style>
         </head>
         <body class="dark bg-yt text-white font-sans">
             <!-- ================= HEADER ================= -->

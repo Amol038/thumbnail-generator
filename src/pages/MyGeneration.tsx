@@ -82,6 +82,10 @@ const MyGeneration = () => {
             {thumbnails.map((thumb: IThumbnail) => {
               const aspectClass =
                 aspectRatioClassMap[thumb.aspect_ratio || "16:9"];
+              const previewSearch = new URLSearchParams({
+                thumbnail_url: thumb.image_url ?? "",
+                title: thumb.title,
+              }).toString();
 
               return (
                 <div
@@ -128,11 +132,18 @@ const MyGeneration = () => {
                       className="size-6 bg-black/50 p-1 rounded hover:bg-pink-600 transition-all"/>
                       <DownloadIcon onClick={()=>handleDownload(thumb.image_url!)} 
                       className="size-6 bg-black/50 p-1 rounded hover:bg-pink-600 transition-all"/>
-                      <Link target="_blank" to={`/preview?thumbnail_url=${thumb.
-                      image_url}&title=${thumb.title}`}>
-                      <ArrowUpRightIcon className="size-6 bg-black/50 p-1 rounded
-                      hover:bg-pink-600 transition-all"/>
-                      </Link>
+                      {thumb.image_url && (
+                        <Link
+                          target="_blank"
+                          rel="noreferrer"
+                          to={`/preview?${previewSearch}`}
+                          aria-label={`Open preview for ${thumb.title}`}
+                        >
+                          <ArrowUpRightIcon
+                            className="size-6 bg-black/50 p-1 rounded hover:bg-pink-600 transition-all"
+                          />
+                        </Link>
+                      )}
 
                       </div>
                     </div>
