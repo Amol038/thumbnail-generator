@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
-import SoftBackdrop from "../components/SoftBackdrop";
-import { dummyThumbnails, type IThumbnail } from "../assets/assets";
-import { Link, useNavigate } from "react-router-dom";
 import { ArrowUpRightIcon, DownloadIcon, TrashIcon } from "lucide-react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import SoftBackdrop from "../components/SoftBackdrop";
+import type { IThumbnail } from "../assets/assets";
+import { ApiError, apiRequest } from "../lib/api";
+
+type ThumbnailsResponse = {
+  thumbnails: IThumbnail[];
+};
 
 const MyGeneration = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const aspectRatioClassMap: Record<string, string> = {
     "16:9": "aspect-video",
@@ -15,34 +21,84 @@ const MyGeneration = () => {
 
   const [thumbnails, setThumbnails] = useState<IThumbnail[]>([]);
   const [loading, setLoading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [error, setError] = useState("");
 
-  const fetchThumbnails = async () => {
-    setLoading(true);
+  useEffect(() => {
+    let isCancelled = false;
 
-    // Temporary dummy data
-    setThumbnails(dummyThumbnails as unknown as IThumbnail[]);
+    const fetchThumbnails = async () => {
+      setLoading(true);
+      setError("");
 
-    setLoading(false);
-  };
+      try {
+        const response = await apiRequest<ThumbnailsResponse>(
+          "/api/user/thumbnails",
+        );
 
-  const handleDownload = (image_url: string) => {
-    window.open(image_url, "_blank");
+        if (!isCancelled) {
+          setThumbnails(response.thumbnails);
+        }
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        if (error instanceof ApiError && error.status === 401) {
+          navigate("/login", {
+            replace: true,
+            state: { from: location.pathname },
+          });
+          return;
+        }
+
+        setError(
+          error instanceof Error ? error.message : "Unable to load thumbnails.",
+        );
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void fetchThumbnails();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [location.pathname, navigate]);
+
+  const handleDownload = (imageUrl: string) => {
+    window.open(imageUrl, "_blank");
   };
 
   const handleDelete = async (id: string) => {
-    console.log(id);
-  };
+    setDeletingId(id);
+    setError("");
 
-  useEffect(() => {
-    fetchThumbnails();
-  }, []);
+    try {
+      await apiRequest(`/api/thumbnail/delete/${id}`, {
+        method: "DELETE",
+      });
+
+      setThumbnails((currentThumbnails) =>
+        currentThumbnails.filter((thumbnail) => thumbnail._id !== id),
+      );
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Unable to delete thumbnail.",
+      );
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <>
       <SoftBackdrop />
 
       <div className="mt-32 min-h-screen px-6 md:px-16 lg:px-24 xl:px-32">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-zinc-200">
             My Generations
@@ -52,7 +108,12 @@ const MyGeneration = () => {
           </p>
         </div>
 
-        {/* Loading */}
+        {error && (
+          <div className="mb-6 rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+            {error}
+          </div>
+        )}
+
         {loading && (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -64,7 +125,6 @@ const MyGeneration = () => {
           </div>
         )}
 
-        {/* Empty State */}
         {!loading && thumbnails.length === 0 && (
           <div className="py-24 text-center">
             <h3 className="text-lg font-semibold text-zinc-200">
@@ -76,10 +136,9 @@ const MyGeneration = () => {
           </div>
         )}
 
-        {/* Grid */}
         {!loading && thumbnails.length > 0 && (
           <div className="columns-1 gap-8 sm:columns-2 lg:columns-3 2xl:columns-4">
-            {thumbnails.map((thumb: IThumbnail) => {
+            {thumbnails.map((thumb) => {
               const aspectClass =
                 aspectRatioClassMap[thumb.aspect_ratio || "16:9"];
               const previewSearch = new URLSearchParams({
@@ -93,7 +152,6 @@ const MyGeneration = () => {
                   onClick={() => navigate(`/generate/${thumb._id}`)}
                   className="group relative mb-8 cursor-pointer break-inside-avoid rounded-2xl border border-white/10 bg-white/6 shadow-xl transition"
                 >
-                  {/* Image */}
                   <div
                     className={`relative overflow-hidden rounded-t-2xl bg-black ${aspectClass}`}
                   >
@@ -116,43 +174,63 @@ const MyGeneration = () => {
                     )}
                   </div>
 
-                  {/* Content */}
-                 <div className="p-4 space-y-2">
-                  <h3 className="text-sm font-semibold text-zinc-100 line-clamp-2">{thumb.title}</h3>
-                  <div className="flex flex-wrap gap-2 text-xs text-zinc-400">
-                    <span className='px-2 py-0.5 rounded bg-white/8'>{thumb.style}</span>
-                    <span className='px-2 py-0.5 rounded bg-white/8'>{thumb.color_scheme}</span>
-                    <span className='px-2 py-0.5 rounded bg-white/8'>{thumb.aspect_ratio}</span>
+                  <div className="space-y-2 p-4">
+                    <h3 className="line-clamp-2 text-sm font-semibold text-zinc-100">
+                      {thumb.title}
+                    </h3>
+                    <div className="flex flex-wrap gap-2 text-xs text-zinc-400">
+                      <span className="rounded bg-white/8 px-2 py-0.5">
+                        {thumb.style}
+                      </span>
+                      <span className="rounded bg-white/8 px-2 py-0.5">
+                        {thumb.color_scheme ?? "default"}
+                      </span>
+                      <span className="rounded bg-white/8 px-2 py-0.5">
+                        {thumb.aspect_ratio}
+                      </span>
                     </div>
-                    <p className="text-xs text-zinc-500">{new Date(thumb.createdAt!).toDateString()}</p>
-                    </div>
-                    <div onClick={(e)=>e.stopPropagation()} className="absolute 
-                    bottom-2 right-2 max-sm:flex sm:hidden group-hover:flex gap-1.5">
-                      <TrashIcon onClick={()=>handleDelete(thumb._id)} 
-                      className="size-6 bg-black/50 p-1 rounded hover:bg-pink-600 transition-all"/>
-                      <DownloadIcon onClick={()=>handleDownload(thumb.image_url!)} 
-                      className="size-6 bg-black/50 p-1 rounded hover:bg-pink-600 transition-all"/>
-                      {thumb.image_url && (
-                        <Link
-                          target="_blank"
-                          rel="noreferrer"
-                          to={`/preview?${previewSearch}`}
-                          aria-label={`Open preview for ${thumb.title}`}
-                        >
-                          <ArrowUpRightIcon
-                            className="size-6 bg-black/50 p-1 rounded hover:bg-pink-600 transition-all"
-                          />
-                        </Link>
-                      )}
-
-                      </div>
-                    </div>
-                    );
-                    })}
-                    </div>
-                  )}
+                    <p className="text-xs text-zinc-500">
+                      {thumb.createdAt
+                        ? new Date(thumb.createdAt).toDateString()
+                        : "Recently generated"}
+                    </p>
                   </div>
-                  </>
-                  );
-                };
-                export default MyGeneration;
+
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute bottom-2 right-2 gap-1.5 max-sm:flex sm:hidden group-hover:flex"
+                  >
+                    <TrashIcon
+                      onClick={() => handleDelete(thumb._id)}
+                      className={`size-6 rounded bg-black/50 p-1 transition-all ${
+                        deletingId === thumb._id
+                          ? "cursor-not-allowed opacity-50"
+                          : "hover:bg-pink-600"
+                      }`}
+                    />
+                    <DownloadIcon
+                      onClick={() => thumb.image_url && handleDownload(thumb.image_url)}
+                      className="size-6 rounded bg-black/50 p-1 transition-all hover:bg-pink-600"
+                    />
+                    {thumb.image_url && (
+                      <Link
+                        target="_blank"
+                        rel="noreferrer"
+                        to={`/preview?${previewSearch}`}
+                        aria-label={`Open preview for ${thumb.title}`}
+                      >
+                        <ArrowUpRightIcon className="size-6 rounded bg-black/50 p-1 transition-all hover:bg-pink-600" />
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </>
+  );
+};
+
+export default MyGeneration;

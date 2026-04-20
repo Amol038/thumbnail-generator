@@ -11,9 +11,10 @@ onChange: (color: string)=>void}) => {
             <div className='grid grid-cols-6 gap-3'>
                 {colorSchemes.map((scheme)=>(
                     <button key={scheme.id}
+                    type="button"
                     onClick={()=>onChange(scheme.id)}
                  className={`relative rounded-lg transition-all ${
-                    value === scheme.id && 'ring-2 ring-pink-500'}`}
+                    value === scheme.id ? 'ring-2 ring-pink-500' : ''}`}
                     title={scheme.name}>
                      <div className='flex h-10 rounded-lg
                      overflow-hidden'>

@@ -1,59 +1,32 @@
 'use client'
+import { Link } from "react-router-dom";
 import SectionTitle from "../components/SectionTitle";
-import { ArrowRightIcon, MailIcon, UserIcon } from "lucide-react";
-import { motion } from "motion/react";
+import ContactForm from "../components/ContactForm";
 
 export default function ContactSection() {
-    return (
-        <div className="px-4 md:px-16 lg:px-24 xl:px-32">
-            <SectionTitle text1="Contact" text2="Grow your channel" text3="Have question about AI? Ready to scale your views ? Let's talk." />
-            <form onSubmit={(e) => e.preventDefault()} className='grid sm:grid-cols-2 gap-3 sm:gap-5 max-w-2xl mx-auto text-slate-300 mt-16 w-full' >
-                <motion.div
-                    initial={{ y: 150, opacity: 0 }}
-                    whileInView={{ y: 0, opacity: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ type: "spring", stiffness: 320, damping: 70, mass: 1 }}
-                >
-                    <p className='mb-2 font-medium'>Your name</p>
-                    <div className='flex items-center pl-3 rounded-lg border border-slate-700 focus-within:border-pink-500'>
-                        <UserIcon className='size-5' />
-                        <input name='name' type="text" placeholder='Enter your name' className='w-full p-3 outline-none' />
-                    </div>
-                </motion.div>
-
-                <motion.div
-                    initial={{ y: 150, opacity: 0 }}
-                    whileInView={{ y: 0, opacity: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ type: "spring", stiffness: 280, damping: 70, mass: 1 }}
-                >
-                    <p className='mb-2 font-medium'>Email id</p>
-                    <div className='flex items-center pl-3 rounded-lg border border-slate-700 focus-within:border-pink-500'>
-                        <MailIcon className='size-5' />
-                        <input name='email' type="email" placeholder='Enter your email' className='w-full p-3 outline-none' />
-                    </div>
-                </motion.div>
-
-                <motion.div className='sm:col-span-2'
-                    initial={{ y: 150, opacity: 0 }}
-                    whileInView={{ y: 0, opacity: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ type: "spring", stiffness: 240, damping: 70, mass: 1 }}
-                >
-                    <p className='mb-2 font-medium'>Message</p>
-                    <textarea name='message' rows={8} placeholder='Enter your message' className='focus:border-pink-500 resize-none w-full p-3 outline-none rounded-lg border border-slate-700' />
-                </motion.div>
-
-                <motion.button type='submit' className='w-max flex items-center gap-2 bg-pink-600 hover:bg-pink-700 text-white px-10 py-3 rounded-full'
-                    initial={{ y: 150, opacity: 0 }}
-                    whileInView={{ y: 0, opacity: 1 }}
-                    viewport={{ once: true }}
-                    transition={{ type: "spring", stiffness: 280, damping: 70, mass: 1 }}
-                >
-                    Submit
-                    <ArrowRightIcon className="size-5" />
-                </motion.button>
-            </form>
+  return (
+    <div className="px-4 md:px-16 lg:px-24 xl:px-32">
+      <SectionTitle
+        text1="Contact"
+        text2="Grow your channel"
+        text3="Have question about AI? Ready to scale your views ? Let's talk."
+      />
+      <div className="mx-auto mt-16 max-w-3xl rounded-3xl border border-white/10 bg-white/6 p-6 md:p-8">
+        <ContactForm
+          source="homepage-section"
+          showSubject={false}
+          submitLabel="Submit"
+        />
+        <div className="mt-6 border-t border-white/10 pt-6 text-sm text-slate-400">
+          Need a full support page, partnership help, or policy information?{" "}
+          <Link
+            to="/contact"
+            className="text-pink-400 transition hover:text-pink-300"
+          >
+            Visit Contact Us
+          </Link>
         </div>
-    );
+      </div>
+    </div>
+  );
 }
