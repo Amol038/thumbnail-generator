@@ -2,7 +2,8 @@
 import { CheckIcon, ChevronRightIcon, VideoIcon } from "lucide-react";
 import TiltedImage from "../components/TiltImage";
 import { motion } from "motion/react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { BRAND_NAME } from "../lib/branding";
 
 export default function HeroSection() {
     const navigate = useNavigate()
@@ -15,7 +16,7 @@ export default function HeroSection() {
     return (
         <div className="relative flex flex-col items-center justify-center px-4 md:px-16 lg:px-24 xl:px-32">
             <div className="absolute top-30 -z-10 left-1/4 size-72 bg-pink-600 blur-[300px]"></div>
-            <motion.a href="https://prebuiltui.com?utm_source=pixels" className="group flex items-center gap-2 rounded-full p-1 pr-3 mt-44 text-pink-100 bg-pink-200/15"
+            <motion.div className="group flex items-center gap-2 rounded-full p-1 pr-3 mt-44 text-pink-100 bg-pink-200/15"
                 initial={{ y: -20, opacity: 0 }}
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
@@ -24,18 +25,18 @@ export default function HeroSection() {
                 <span className="bg-pink-800 text-white text-xs px-3.5 py-1 rounded-full">
                     NEW
                 </span>
-                <p className="flex items-center gap-1">
-                    <span>Generate your first thumbnail for free</span>
+                <Link to="/generate" className="flex items-center gap-1">
+                    <span>Start creating with {BRAND_NAME}</span>
                     <ChevronRightIcon size={16} className="group-hover:translate-x-0.5 transition duration-300" />
-                </p>
-            </motion.a>
+                </Link>
+            </motion.div>
             <motion.h1 className="text-5xl/17 md:text-6xl/21 font-medium max-w-3xl text-center"
                 initial={{ y: 50, opacity: 0 }}
                 whileInView={{ y: 0, opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ type: "spring", stiffness: 240, damping: 70, mass: 1 }}
             >
-                AI Thumbnail Generator for your <span className="move-gradient px-3 rounded-xl text-nowrap">Videos.</span>
+                {BRAND_NAME} helps you create <span className="move-gradient px-3 rounded-xl text-nowrap">better thumbnails.</span>
             </motion.h1>
             <motion.p className="text-base text-center text-slate-200 max-w-lg mt-6"
                 initial={{ y: 50, opacity: 0 }}
@@ -43,7 +44,7 @@ export default function HeroSection() {
                 viewport={{ once: true }}
                 transition={{ delay: 0.2, type: "spring", stiffness: 320, damping: 70, mass: 1 }}
             >
-                Stop Wasting hour on design. Get high-converting thumbnails in seconds with our advanced AI.</motion.p>
+                Stop wasting hours on design. Generate high-converting YouTube thumbnails in seconds with {BRAND_NAME}.</motion.p>
             <motion.div className="flex items-center gap-4 mt-8"
                 initial={{ y: 50, opacity: 0 }}
                 whileInView={{ y: 0, opacity: 1 }}

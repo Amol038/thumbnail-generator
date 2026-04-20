@@ -3,6 +3,7 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { BRAND_NAME } from "../lib/branding";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -47,8 +48,15 @@ export default function Navbar() {
         viewport={{ once: true }}
         transition={{ type: "spring", stiffness: 250, damping: 70, mass: 1 }}
       >
-        <NavLink to="/">
-          <img src="/logo.svg" alt="logo" className="h-8.5 w-auto" />
+        <NavLink to="/" className="flex items-center gap-3">
+          <img
+            src="/favicon.svg"
+            alt={`${BRAND_NAME} logo`}
+            className="h-8.5 w-auto"
+          />
+          <span className="text-lg font-semibold tracking-[0.08em] text-white">
+            {BRAND_NAME}
+          </span>
         </NavLink>
 
         <div className="hidden items-center gap-8 transition duration-500 md:flex">

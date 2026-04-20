@@ -2,43 +2,41 @@ import type { IPricing } from "../types";
 
 export const pricingData: IPricing[] = [
     {
-        name: "Basic",
-        price: 29,
-        period: "month",
+        name: "Free Trial",
+        price: 0,
+        period: "1 thumbnail included",
         features: [
-            "50 AI Thumbnails/months",
-            "Basic template",
-            "Standard Resolution",
-            "No Watermark",
-            "Email Support"
+            "1 thumbnail free",
+            "Core thumbnail styles",
+            "Standard export quality",
+            "No card required",
+            "Best for testing the workflow"
         ],
         mostPopular: false
     },
     {
-        name: "Pro",
-        price: 79,
+        name: "Creator",
+        price: 299,
         period: "month",
         features: [
-            "unlimited AI Thumbnails",
-            "Premium Templates",
-            "4k Resolution",
-            "A/B Testing Tools",
-            "Priority Support",
-            "Custom Fonts",
-            "Brand Kit Analysis"
+            "30 AI thumbnails / month",
+            "High-resolution exports",
+            "All core styles and color themes",
+            "Saved generation history",
+            "Email support"
         ],
         mostPopular: true
     },
     {
-        name: "Enterprise",
-        price: 199,
+        name: "Studio",
+        price: 999,
         period: "month",
         features: [
-            "Everthing in Pro",
-            "API Access",
-            "Team Collaboration",
-            "Custom Branding ",
-            "Dedicated Account Manager"
+            "150 AI thumbnails / month",
+            "Priority generation queue",
+            "Advanced prompt control",
+            "Team-ready workflow",
+            "Priority support"
         ],
         mostPopular: false
     }

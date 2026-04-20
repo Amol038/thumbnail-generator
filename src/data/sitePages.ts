@@ -57,27 +57,27 @@ export const sitePages: Record<SitePageKey, SitePageContent> = {
   pricing: {
     path: "/pricing",
     eyebrow: "Pricing",
-    title: "Plans built for creators at every stage",
+    title: "Simple INR pricing for creators",
     description:
-      "Start lean, scale when your publishing cadence increases, and move into team workflows when thumbnails become part of a larger content engine.",
+      "Your first thumbnail is free. Paid plans are shown in Indian rupees so creators can understand future pricing before subscriptions go live.",
     sections: [
       {
-        title: "Solo creator friendly",
+        title: "Start free",
         description:
-          "The starter tier is designed for YouTubers and freelancers who want fast thumbnail output without adding a designer to every video.",
+          "Every new user can create one thumbnail for free and test the workflow before deciding whether to move to a paid plan.",
       },
       {
-        title: "Team ready",
+        title: "INR-first pricing",
         description:
-          "Higher plans expand quality, workflow flexibility, and collaboration for channels publishing at scale.",
+          "Paid plans are displayed in Indian rupees so the pricing page feels natural for your main audience and easier to compare.",
       },
       {
-        title: "Flexible growth",
+        title: "Preview for now",
         description:
-          "Upgrade when you need more generation volume, support, or automation. You do not need to overbuy on day one.",
+          "This page is a pricing preview right now. Billing and payment collection can be connected later when subscriptions are ready.",
       },
     ],
-    ctaLabel: "Start Generating",
+    ctaLabel: "Try 1 Thumbnail Free",
     ctaHref: "/generate",
   },
   affiliate: {
