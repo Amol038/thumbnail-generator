@@ -139,7 +139,7 @@ const Generate = () => {
 
     if (quotaRetrySeconds !== null) {
       setError(
-        `Gemini image generation is temporarily rate limited. Try again in about ${quotaRetrySeconds} seconds.`,
+        `Image generation is temporarily rate limited. Try again in about ${quotaRetrySeconds} seconds.`,
       );
       return;
     }
@@ -210,7 +210,7 @@ const Generate = () => {
 
         setFieldErrors({});
         setQuotaRetrySeconds(retryAfterSeconds);
-        setError("Gemini image generation is temporarily unavailable.");
+        setError("Image generation is temporarily unavailable.");
         return;
       }
 
@@ -403,9 +403,8 @@ const Generate = () => {
 
                   {quotaRetrySeconds !== null && (
                     <p className="text-sm text-amber-200">
-                      Try again in about {quotaRetrySeconds} seconds. If this
-                      keeps happening, use a billed Gemini project or wait for
-                      the quota window to reset.
+                      Try again in about {quotaRetrySeconds} seconds. The image
+                      provider is rate limiting requests right now.
                     </p>
                   )}
                 </div>
