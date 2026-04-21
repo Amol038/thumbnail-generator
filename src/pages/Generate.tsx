@@ -23,6 +23,24 @@ type GenerateThumbnailResponse = {
   thumbnail: IThumbnail;
 };
 
+type GenerateErrorPayload = {
+  message?: string;
+  retryAfterSeconds?: number;
+};
+
+const getRetryAfterSeconds = (payload: unknown) => {
+  if (
+    typeof payload === "object" &&
+    payload !== null &&
+    "retryAfterSeconds" in payload &&
+    typeof payload.retryAfterSeconds === "number"
+  ) {
+    return payload.retryAfterSeconds;
+  }
+
+  return null;
+};
+
 const Generate = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -38,10 +56,41 @@ const Generate = () => {
   const [style, setStyle] = useState<ThumbnailStyle>("Bold & Graphic");
   const [styleDropdownOpen, setStyleDropdownOpen] = useState(false);
   const [error, setError] = useState("");
+  const [quotaRetrySeconds, setQuotaRetrySeconds] = useState<number | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (quotaRetrySeconds === null) {
+      return;
+    }
+
+    if (quotaRetrySeconds <= 0) {
+      setQuotaRetrySeconds(null);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setQuotaRetrySeconds((currentValue) =>
+        currentValue === null ? null : currentValue - 1,
+      );
+    }, 1000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [quotaRetrySeconds]);
 
   const handleGenerate = async () => {
     if (!title.trim()) {
       setError("Please add a video title or topic before generating.");
+      return;
+    }
+
+    if (quotaRetrySeconds !== null) {
+      setError(
+        `Gemini image generation is temporarily rate limited. Try again in about ${quotaRetrySeconds} seconds.`,
+      );
       return;
     }
 
@@ -65,6 +114,7 @@ const Generate = () => {
       );
 
       setThumbnail(response.thumbnail);
+      setQuotaRetrySeconds(null);
       navigate(`/generate/${response.thumbnail._id}`, { replace: true });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
@@ -75,6 +125,16 @@ const Generate = () => {
         return;
       }
 
+      if (error instanceof ApiError && error.status === 429) {
+        const payload = error.payload as GenerateErrorPayload | null;
+        const retryAfterSeconds = getRetryAfterSeconds(payload);
+
+        setQuotaRetrySeconds(retryAfterSeconds);
+        setError("Gemini image generation is temporarily unavailable.");
+        return;
+      }
+
+      setQuotaRetrySeconds(null);
       setError(
         error instanceof Error
           ? error.message
@@ -95,6 +155,7 @@ const Generate = () => {
       setAspectRatio("16:9");
       setColorSchemeId(colorSchemes[0].id);
       setStyle("Bold & Graphic");
+      setQuotaRetrySeconds(null);
       return;
     }
 
@@ -220,15 +281,27 @@ const Generate = () => {
                   {error && (
                     <p className="text-sm text-rose-300">{error}</p>
                   )}
+
+                  {quotaRetrySeconds !== null && (
+                    <p className="text-sm text-amber-200">
+                      Try again in about {quotaRetrySeconds} seconds. If this
+                      keeps happening, use a billed Gemini project or wait for
+                      the quota window to reset.
+                    </p>
+                  )}
                 </div>
 
                 {!id && (
                   <button
                     onClick={handleGenerate}
-                    disabled={loading || !title.trim()}
+                    disabled={loading || !title.trim() || quotaRetrySeconds !== null}
                     className="w-full rounded-xl bg-linear-to-b from-pink-500 to-pink-600 py-3.5 text-[15px] font-medium transition-colors hover:from-pink-700 disabled:cursor-not-allowed disabled:opacity-70"
                   >
-                    {loading ? "Generating..." : "Generate Thumbnail"}
+                    {loading
+                      ? "Generating..."
+                      : quotaRetrySeconds !== null
+                        ? `Retry in ${quotaRetrySeconds}s`
+                        : "Generate Thumbnail"}
                   </button>
                 )}
               </div>
