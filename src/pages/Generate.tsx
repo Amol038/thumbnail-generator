@@ -12,6 +12,14 @@ import StyleSelector from "../components/StyleSelector";
 import ColorSchemeSelector from "../components/ColorSchemeSelector";
 import PreviewPanel from "../components/PreviewPanel";
 import { ApiError, apiRequest } from "../lib/api";
+import {
+  THUMBNAIL_PROMPT_MAX_LENGTH,
+  THUMBNAIL_TITLE_MAX_LENGTH,
+  hasValidationErrors,
+  validateThumbnailValues,
+  type GenerateFieldErrors,
+  type GenerateFieldName,
+} from "../lib/validation";
 
 type SingleThumbnailResponse = {
   thumbnail: IThumbnail;
@@ -26,6 +34,7 @@ type GenerateThumbnailResponse = {
 type GenerateErrorPayload = {
   message?: string;
   retryAfterSeconds?: number;
+  errors?: Record<string, string>;
 };
 
 const getRetryAfterSeconds = (payload: unknown) => {
@@ -39,6 +48,36 @@ const getRetryAfterSeconds = (payload: unknown) => {
   }
 
   return null;
+};
+
+const mapGenerateErrors = (errors?: Record<string, string>) => {
+  const mappedErrors: GenerateFieldErrors = {};
+
+  if (!errors) {
+    return mappedErrors;
+  }
+
+  if (errors.title) {
+    mappedErrors.title = errors.title;
+  }
+
+  if (errors.prompt) {
+    mappedErrors.additionalDetails = errors.prompt;
+  }
+
+  if (errors.style) {
+    mappedErrors.style = errors.style;
+  }
+
+  if (errors.aspect_ratio) {
+    mappedErrors.aspectRatio = errors.aspect_ratio;
+  }
+
+  if (errors.color_scheme) {
+    mappedErrors.colorSchemeId = errors.color_scheme;
+  }
+
+  return mappedErrors;
 };
 
 const Generate = () => {
@@ -56,6 +95,7 @@ const Generate = () => {
   const [style, setStyle] = useState<ThumbnailStyle>("Bold & Graphic");
   const [styleDropdownOpen, setStyleDropdownOpen] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<GenerateFieldErrors>({});
   const [quotaRetrySeconds, setQuotaRetrySeconds] = useState<number | null>(
     null,
   );
@@ -81,11 +121,21 @@ const Generate = () => {
     };
   }, [quotaRetrySeconds]);
 
+  const clearFieldError = (fieldName: GenerateFieldName) => {
+    setFieldErrors((prev) => {
+      if (!prev[fieldName]) {
+        return prev;
+      }
+
+      const nextErrors = { ...prev };
+      delete nextErrors[fieldName];
+      return nextErrors;
+    });
+  };
+
   const handleGenerate = async () => {
-    if (!title.trim()) {
-      setError("Please add a video title or topic before generating.");
-      return;
-    }
+    setFieldErrors({});
+    setError("");
 
     if (quotaRetrySeconds !== null) {
       setError(
@@ -94,8 +144,26 @@ const Generate = () => {
       return;
     }
 
+    const validation = validateThumbnailValues({
+      title,
+      additionalDetails,
+      style,
+      aspectRatio,
+      colorSchemeId,
+    });
+
+    if (hasValidationErrors(validation.errors)) {
+      setFieldErrors(validation.errors);
+      setError(
+        validation.errors.style ??
+          validation.errors.aspectRatio ??
+          validation.errors.colorSchemeId ??
+          "",
+      );
+      return;
+    }
+
     setLoading(true);
-    setError("");
     setThumbnail(null);
 
     try {
@@ -104,17 +172,18 @@ const Generate = () => {
         {
           method: "POST",
           body: {
-            title: title.trim(),
-            prompt: additionalDetails.trim(),
-            style,
-            aspect_ratio: aspectRatio,
-            color_scheme: colorSchemeId,
+            title: validation.values.title,
+            prompt: validation.values.additionalDetails,
+            style: validation.values.style,
+            aspect_ratio: validation.values.aspectRatio,
+            color_scheme: validation.values.colorSchemeId,
           },
         },
       );
 
       setThumbnail(response.thumbnail);
       setQuotaRetrySeconds(null);
+      setFieldErrors({});
       navigate(`/generate/${response.thumbnail._id}`, { replace: true });
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) {
@@ -125,16 +194,28 @@ const Generate = () => {
         return;
       }
 
+      if (error instanceof ApiError && error.status === 422) {
+        const payload = error.payload as GenerateErrorPayload | null;
+        if (payload?.errors) {
+          setFieldErrors(mapGenerateErrors(payload.errors));
+        }
+
+        setError(payload?.message ?? "Please correct the highlighted fields.");
+        return;
+      }
+
       if (error instanceof ApiError && error.status === 429) {
         const payload = error.payload as GenerateErrorPayload | null;
         const retryAfterSeconds = getRetryAfterSeconds(payload);
 
+        setFieldErrors({});
         setQuotaRetrySeconds(retryAfterSeconds);
         setError("Gemini image generation is temporarily unavailable.");
         return;
       }
 
       setQuotaRetrySeconds(null);
+      setFieldErrors({});
       setError(
         error instanceof Error
           ? error.message
@@ -152,6 +233,7 @@ const Generate = () => {
       setThumbnail(null);
       setLoading(false);
       setError("");
+      setFieldErrors({});
       setAspectRatio("16:9");
       setColorSchemeId(colorSchemes[0].id);
       setStyle("Bold & Graphic");
@@ -164,6 +246,7 @@ const Generate = () => {
     const fetchThumbnail = async () => {
       setLoading(true);
       setError("");
+      setFieldErrors({});
 
       try {
         const response = await apiRequest<SingleThumbnailResponse>(
@@ -235,33 +318,54 @@ const Generate = () => {
                     <input
                       type="text"
                       value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      maxLength={100}
+                      onChange={(e) => {
+                        setTitle(e.target.value);
+                        clearFieldError("title");
+                        setError("");
+                      }}
+                      maxLength={THUMBNAIL_TITLE_MAX_LENGTH}
                       placeholder="e.g., 10 Tips for Better Sleep"
                       className="w-full rounded-lg border border-white/12 bg-black/20 px-4 py-3 text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
                     />
                     <div className="flex justify-end">
                       <span className="text-xs text-zinc-400">
-                        {title.length}/100
+                        {title.length}/{THUMBNAIL_TITLE_MAX_LENGTH}
                       </span>
                     </div>
+                    {fieldErrors.title && (
+                      <p className="text-sm text-rose-300">
+                        {fieldErrors.title}
+                      </p>
+                    )}
                   </div>
 
                   <AspectedRatioSelector
                     value={aspectRatio}
-                    onChange={setAspectRatio}
+                    onChange={(value) => {
+                      setAspectRatio(value);
+                      clearFieldError("aspectRatio");
+                      setError("");
+                    }}
                   />
 
                   <StyleSelector
                     value={style}
-                    onChange={setStyle}
+                    onChange={(value) => {
+                      setStyle(value);
+                      clearFieldError("style");
+                      setError("");
+                    }}
                     isOpen={styleDropdownOpen}
                     setIsOpen={setStyleDropdownOpen}
                   />
 
                   <ColorSchemeSelector
                     value={colorSchemeId}
-                    onChange={setColorSchemeId}
+                    onChange={(value) => {
+                      setColorSchemeId(value);
+                      clearFieldError("colorSchemeId");
+                      setError("");
+                    }}
                   />
 
                   <div className="space-y-2">
@@ -271,11 +375,26 @@ const Generate = () => {
                     </label>
                     <textarea
                       value={additionalDetails}
-                      onChange={(e) => setAdditionalDetails(e.target.value)}
+                      onChange={(e) => {
+                        setAdditionalDetails(e.target.value);
+                        clearFieldError("additionalDetails");
+                        setError("");
+                      }}
                       rows={3}
+                      maxLength={THUMBNAIL_PROMPT_MAX_LENGTH}
                       placeholder="Add any specific elements, mood, or style preferences..."
                       className="w-full resize-none rounded-lg border border-white/10 bg-white/6 px-4 py-3 text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
                     />
+                    <div className="flex justify-end">
+                      <span className="text-xs text-zinc-400">
+                        {additionalDetails.length}/{THUMBNAIL_PROMPT_MAX_LENGTH}
+                      </span>
+                    </div>
+                    {fieldErrors.additionalDetails && (
+                      <p className="text-sm text-rose-300">
+                        {fieldErrors.additionalDetails}
+                      </p>
+                    )}
                   </div>
 
                   {error && (

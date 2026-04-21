@@ -1,14 +1,30 @@
-import React, { useState } from "react";
+import { useState, type ChangeEvent, type FormEvent } from "react";
 import { Loader2Icon } from "lucide-react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import SoftBackdrop from "./SoftBackdrop";
 import { useAuth } from "../context/AuthContext";
+import { ApiError } from "../lib/api";
+import {
+  EMAIL_MAX_LENGTH,
+  PASSWORD_MAX_LENGTH,
+  PASSWORD_MIN_LENGTH,
+  USER_NAME_MAX_LENGTH,
+  hasValidationErrors,
+  validateAuthValues,
+  type AuthFieldErrors,
+  type AuthFieldName,
+  type AuthMode,
+} from "../lib/validation";
 
-type AuthMode = "login" | "register";
+type AuthErrorPayload = {
+  errors?: AuthFieldErrors;
+  message?: string;
+};
 
 const Login = () => {
   const [state, setState] = useState<AuthMode>("login");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<AuthFieldErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -25,32 +41,61 @@ const Login = () => {
     return stateFromLocation?.from || "/generate";
   })();
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const clearFieldError = (fieldName: AuthFieldName) => {
+    setFieldErrors((prev) => {
+      if (!prev[fieldName]) {
+        return prev;
+      }
+
+      const nextErrors = { ...prev };
+      delete nextErrors[fieldName];
+      return nextErrors;
+    });
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    clearFieldError(name as AuthFieldName);
+    setError("");
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
+    setFieldErrors({});
+
+    const validation = validateAuthValues(state, formData);
+    if (hasValidationErrors(validation.errors)) {
+      setFieldErrors(validation.errors);
+      return;
+    }
+
     setSubmitting(true);
 
     try {
       if (state === "login") {
         await login({
-          email: formData.email.trim(),
-          password: formData.password,
+          email: validation.values.email,
+          password: validation.values.password,
         });
       } else {
         await register({
-          name: formData.name.trim(),
-          email: formData.email.trim(),
-          password: formData.password,
+          name: validation.values.name,
+          email: validation.values.email,
+          password: validation.values.password,
         });
       }
 
       navigate(redirectTo, { replace: true });
     } catch (error) {
+      if (error instanceof ApiError) {
+        const payload = error.payload as AuthErrorPayload | null;
+        if (payload?.errors) {
+          setFieldErrors(payload.errors);
+        }
+      }
+
       setError(
         error instanceof Error ? error.message : "Authentication failed",
       );
@@ -116,9 +161,17 @@ const Login = () => {
                 className="w-full border-none bg-transparent text-white outline-none placeholder:text-white/60"
                 value={formData.name}
                 onChange={handleChange}
+                maxLength={USER_NAME_MAX_LENGTH}
+                autoComplete="name"
                 required
               />
             </div>
+          )}
+
+          {state !== "login" && fieldErrors.name && (
+            <p className="mt-2 text-left text-sm text-rose-300">
+              {fieldErrors.name}
+            </p>
           )}
 
           <div className="mt-4 flex h-12 w-full items-center gap-2 overflow-hidden rounded-full bg-white/5 pl-6 ring-2 ring-white/10 transition-all focus-within:ring-pink-500/60">
@@ -144,9 +197,17 @@ const Login = () => {
               className="w-full border-none bg-transparent text-white outline-none placeholder:text-white/60"
               value={formData.email}
               onChange={handleChange}
+              maxLength={EMAIL_MAX_LENGTH}
+              autoComplete="email"
               required
             />
           </div>
+
+          {fieldErrors.email && (
+            <p className="mt-2 text-left text-sm text-rose-300">
+              {fieldErrors.email}
+            </p>
+          )}
 
           <div className="mt-4 flex h-12 w-full items-center gap-2 overflow-hidden rounded-full bg-white/5 pl-6 ring-2 ring-white/10 transition-all focus-within:ring-indigo-500/60">
             <svg
@@ -171,9 +232,23 @@ const Login = () => {
               className="w-full border-none bg-transparent text-white outline-none placeholder:text-white/60"
               value={formData.password}
               onChange={handleChange}
+              maxLength={PASSWORD_MAX_LENGTH}
+              autoComplete={state === "login" ? "current-password" : "new-password"}
               required
             />
           </div>
+
+          {fieldErrors.password && (
+            <p className="mt-2 text-left text-sm text-rose-300">
+              {fieldErrors.password}
+            </p>
+          )}
+
+          {state !== "login" && (
+            <p className="mt-2 text-left text-xs text-zinc-400">
+              Use {PASSWORD_MIN_LENGTH}-{PASSWORD_MAX_LENGTH} characters.
+            </p>
+          )}
 
           {error && (
             <p className="mt-4 text-left text-sm text-rose-300">{error}</p>
@@ -195,6 +270,7 @@ const Login = () => {
             onClick={() => {
               setState((prev) => (prev === "login" ? "register" : "login"));
               setError("");
+              setFieldErrors({});
             }}
             className="mb-11 mt-3 cursor-pointer text-sm text-gray-400"
           >
